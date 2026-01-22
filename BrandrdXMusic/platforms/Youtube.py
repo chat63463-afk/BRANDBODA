@@ -75,12 +75,13 @@ YOUTUBE_META_MAX = 1000  # أقصى عدد لنتائج البحث المحفو�
 # =======================================================================
 # 🛠️ 3. الأدوات المساعدة (Helpers & Parsers)
 # =======================================================================
+
 def get_cookie():
-    """جلب ملف الكوكيز بذكاء من أي مكان محتمل"""
-    if os.path.exists("cookies.txt"): return "cookies.txt"
-    if os.path.exists("cookies"):
-        files = [f for f in os.listdir("cookies") if f.endswith(".txt")]
-        if files: return os.path.join("cookies", random.choice(files))
+    """جلب ملف الكوكيز المحدد"""
+    path = "BRANDBODA/cookies/BrandedXMusic.txt"
+    if os.path.exists(path):
+        return path
+    # كاحتياط لو المسار غلط يرجع None عشان ما يضربش ايرور
     return None
 
 def clean_file(path):
