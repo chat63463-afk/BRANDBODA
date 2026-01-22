@@ -6,8 +6,8 @@
 ███████║███████╗██║  ██║██║  ██║██║██║ ╚████║███████║   ██║   ███████╗██║██║ ╚████║
 ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚══════╝╚═╝╚═╝  ╚═══╝
 
-[النظام: المدمرة الشاملة - Aria2 Stealth Mode]
-[الميزات: Anti-403 + Fake User-Agent + Smart Connections]
+[النظام: المدمرة الذكية - Smart Stealth Mode]
+[الميزات: 4-Connection Limit (Anti-403) + Header Injection + Auto-Failover]
 """
 
 import asyncio
@@ -42,7 +42,6 @@ except ImportError:
     async def is_on_off(x): return True
     def time_to_seconds(t): return 0
 
-# إسكات المكتبات المزعجة
 logging.getLogger("yt_dlp").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 LOG = LOGGER("YouTube_Destroyer")
@@ -70,23 +69,14 @@ YOUTUBE_META_TTL = 3600
 # =======================================================================
 
 def get_cookie():
-    """
-    نظام تحديد الكوكيز الذكي - يبحث في مسارك الخاص أولاً
-    """
-    # 1. المسار الخاص بك (الأولوية القصوى)
     custom_path = "BRANDBODA/cookies/BrandedXMusic.txt"
     if os.path.exists(custom_path):
         return custom_path
-
-    # 2. المسار الجذري (الافتراضي)
     if os.path.exists("cookies.txt"):
         return "cookies.txt"
-
-    # 3. البحث العشوائي في مجلد cookies
     if os.path.exists("cookies"):
         files = [f for f in os.listdir("cookies") if f.endswith(".txt")]
         if files: return os.path.join("cookies", random.choice(files))
-    
     return None
 
 def clean_file(path):
@@ -98,9 +88,7 @@ def clean_file(path):
 
 async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
     )
     out, errorz = await proc.communicate()
     if errorz:
@@ -111,7 +99,7 @@ async def shell_cmd(cmd):
     return out.decode("utf-8")
 
 # =======================================================================
-# 🚀 4. الكلاس الرئيسي (The Monster Class)
+# 🚀 4. الكلاس الرئيسي
 # =======================================================================
 class YouTubeAPI:
     def __init__(self):
@@ -120,7 +108,6 @@ class YouTubeAPI:
         self.pool = ThreadPoolExecutor(max_workers=Config.MAX_WORKERS)
         self.has_aria2 = os.system("which aria2c > /dev/null 2>&1") == 0
 
-        # تنظيف أولي سريع
         try:
             for f in os.listdir(Config.DOWNLOAD_PATH):
                 if f.endswith(".part"): os.remove(os.path.join(Config.DOWNLOAD_PATH, f))
@@ -202,7 +189,7 @@ class YouTubeAPI:
         return d.get("thumb")
 
     # -----------------------------------------------------------------
-    # 📥 محرك التحميل النووي (مع إصلاح 403)
+    # 📥 محرك التحميل (Aria2 Safe Mode + Native Fallback)
     # -----------------------------------------------------------------
     async def download(
         self,
@@ -222,26 +209,24 @@ class YouTubeAPI:
         elif "youtu.be/" in link: vid_id = link.split("youtu.be/")[1].split("?")[0]
         else: vid_id = str(int(time.time()))
 
-        safe_title = re.sub(r'[\\/*?:"<>|]', "", title if title else vid_id)
         final_path_ext = "mp4" if (video or songvideo) else "m4a"
         final_path = os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.{final_path_ext}")
 
         if os.path.exists(final_path):
             return final_path, True
 
-        strategies = ["android", "ios", "web"]
-        
-        # 🔥 إعدادات Aria2 المخفية (الحل الجذري للـ 403)
-        # تم تقليل الاتصالات من 16 إلى 8 لتجنب الحظر، وإضافة هوية كروم
+        # 🔥 إعدادات Aria2 الآمنة (4 اتصالات فقط لتجنب الحظر)
         aria2_args = [
             "-c",
-            "-x", "8", 
-            "-s", "8", 
+            "-x", "4",  # تم تقليلها إجبارياً لتفادي خطأ 403
+            "-s", "4", 
+            "-j", "1", 
             "-k", "1M", 
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "--header=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "--check-certificate=false"
         ]
 
-        def get_opts(strategy_name):
+        def get_opts(use_aria2=True):
             cookie = get_cookie()
             opts = {
                 "cookiefile": cookie,
@@ -251,51 +236,51 @@ class YouTubeAPI:
                 "quiet": True,
                 "no_warnings": True,
                 "source_address": "0.0.0.0",
-                # إضافة ترويسات لإجبار يوتيوب على قبول الطلب
-                "http_headers": {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                }
             }
             
-            if self.has_aria2:
+            # تفعيل Aria2 فقط إذا طلبناه
+            if self.has_aria2 and use_aria2:
                 opts["external_downloader"] = "aria2c"
                 opts["external_downloader_args"] = aria2_args
 
-            if strategy_name == "android":
-                opts["extractor_args"] = {
-                    "youtube": {
-                        "player_client": ["android", "web"],
-                        "player_skip": ["configs", "webpage"],
-                    }
-                }
-            elif strategy_name == "ios":
-                opts["extractor_args"] = {"youtube": {"player_client": ["ios"]}}
-            
+            # Format Selection
             if video or songvideo:
-                opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
+                opts["format"] = "bestvideo+bestaudio/best"
                 opts["merge_output_format"] = "mp4"
             else:
                 opts["format"] = "bestaudio[ext=m4a]/bestaudio/best"
             
             return opts
 
-        for strategy in strategies:
-            try:
-                def run_dl():
-                    opts = get_opts(strategy)
-                    with YoutubeDL(opts) as ydl:
-                        ydl.download([link])
-                
-                await loop.run_in_executor(self.pool, run_dl)
-                
-                for f in os.listdir(Config.DOWNLOAD_PATH):
-                    if f.startswith(vid_id) and not f.endswith(".part"):
-                        return os.path.join(Config.DOWNLOAD_PATH, f), True
-                        
-            except Exception as e:
-                continue
+        # === المحاولة الأولى: Aria2 (Safe Mode) ===
+        try:
+            def run_dl_aria():
+                with YoutubeDL(get_opts(use_aria2=True)) as ydl:
+                    ydl.download([link])
+            await loop.run_in_executor(self.pool, run_dl_aria)
+            
+            # التحقق
+            for f in os.listdir(Config.DOWNLOAD_PATH):
+                if f.startswith(vid_id) and not f.endswith(".part") and not f.endswith(".aria2"):
+                    return os.path.join(Config.DOWNLOAD_PATH, f), True
+        except Exception as e:
+            LOG.error(f"Aria2 Failed: {e}, Switching to Native...")
 
-        # API Fallback
+        # === المحاولة الثانية: Native yt-dlp (Fallback) ===
+        # إذا فشل Aria2 بسبب 403، نستخدم التحميل العادي فوراً
+        try:
+            def run_dl_native():
+                with YoutubeDL(get_opts(use_aria2=False)) as ydl:
+                    ydl.download([link])
+            await loop.run_in_executor(self.pool, run_dl_native)
+            
+            for f in os.listdir(Config.DOWNLOAD_PATH):
+                if f.startswith(vid_id) and not f.endswith(".part"):
+                    return os.path.join(Config.DOWNLOAD_PATH, f), True
+        except Exception:
+            pass
+
+        # === المحاولة الثالثة: API Fallback ===
         try:
             res = await self._api_download_fallback(link, vid_id, final_path, video or songvideo)
             if res: return res, True
