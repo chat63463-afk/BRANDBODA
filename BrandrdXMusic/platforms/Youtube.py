@@ -6,9 +6,8 @@
 ███████║███████╗██║  ██║██║  ██║██║██║ ╚████║███████║   ██║   ███████╗██║██║ ╚████║
 ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚══════╝╚═╝╚═╝  ╚═══╝
 
-[النظام: المدمرة الشاملة - The Destroyer Edition V2]
-[الميزات: Anti-Ban Hydra System + Multi-Client Spoofing + Smart Cookie Path]
-[الحالة: Overclocked & Unlocked]
+[النظام: المدمرة الشاملة - Aria2 Stealth Mode]
+[الميزات: Anti-403 + Fake User-Agent + Smart Connections]
 """
 
 import asyncio
@@ -50,7 +49,7 @@ LOG = LOGGER("YouTube_Destroyer")
 
 class Config:
     DOWNLOAD_PATH = "downloads"
-    MAX_WORKERS = 50 # زيادة عدد العمال للسرعة القصوى
+    MAX_WORKERS = 50 
     SERVERS = [
         {"url": "https://shrutibots.site", "weight": 10},
         {"url": "https://myapi-i-bwca.fly.dev", "weight": 100},
@@ -156,7 +155,7 @@ class YouTubeAPI:
         return None if offset in (None,) else text[offset : offset + length]
 
     # -----------------------------------------------------------------
-    # 🔍 البحث (سريع جداً مع الكاش)
+    # 🔍 البحث
     # -----------------------------------------------------------------
     async def track(self, link: str, videoid: Union[bool, str] = None):
         if videoid: link = self.base + link
@@ -203,7 +202,7 @@ class YouTubeAPI:
         return d.get("thumb")
 
     # -----------------------------------------------------------------
-    # 📥 محرك التحميل النووي (Hydra Engine)
+    # 📥 محرك التحميل النووي (مع إصلاح 403)
     # -----------------------------------------------------------------
     async def download(
         self,
@@ -227,17 +226,19 @@ class YouTubeAPI:
         final_path_ext = "mp4" if (video or songvideo) else "m4a"
         final_path = os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.{final_path_ext}")
 
-        # التحقق السريع في الملفات الموجودة
         if os.path.exists(final_path):
             return final_path, True
 
-        # === استراتيجيات التجاوز (The Bypass Strategies) ===
-        # نحاول بـ 3 طرق: أندرويد (الأقوى)، ثم iOS، ثم الويب
         strategies = ["android", "ios", "web"]
         
-        # إعدادات Aria2 للسرعة القصوى
+        # 🔥 إعدادات Aria2 المخفية (الحل الجذري للـ 403)
+        # تم تقليل الاتصالات من 16 إلى 8 لتجنب الحظر، وإضافة هوية كروم
         aria2_args = [
-            "-x", "16", "-s", "16", "-k", "1M", "--max-connection-per-server=16"
+            "-c",
+            "-x", "8", 
+            "-s", "8", 
+            "-k", "1M", 
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         ]
 
         def get_opts(strategy_name):
@@ -249,16 +250,17 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                # إجبار IPv4 لتفادي حظر الداتا سنتر
-                "source_address": "0.0.0.0", 
+                "source_address": "0.0.0.0",
+                # إضافة ترويسات لإجبار يوتيوب على قبول الطلب
+                "http_headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                }
             }
             
-            # تفعيل Aria2 إذا وجد
             if self.has_aria2:
                 opts["external_downloader"] = "aria2c"
                 opts["external_downloader_args"] = aria2_args
 
-            # تخصيص العميل (Client Spoofing)
             if strategy_name == "android":
                 opts["extractor_args"] = {
                     "youtube": {
@@ -269,7 +271,6 @@ class YouTubeAPI:
             elif strategy_name == "ios":
                 opts["extractor_args"] = {"youtube": {"player_client": ["ios"]}}
             
-            # تحديد الصيغة
             if video or songvideo:
                 opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
                 opts["merge_output_format"] = "mp4"
@@ -278,7 +279,6 @@ class YouTubeAPI:
             
             return opts
 
-        # === حلقة المحاولة (Retry Loop) ===
         for strategy in strategies:
             try:
                 def run_dl():
@@ -286,19 +286,16 @@ class YouTubeAPI:
                     with YoutubeDL(opts) as ydl:
                         ydl.download([link])
                 
-                # تنفيذ التحميل
                 await loop.run_in_executor(self.pool, run_dl)
                 
-                # التحقق من نجاح التحميل (البحث عن الملف بأي امتداد محتمل)
                 for f in os.listdir(Config.DOWNLOAD_PATH):
                     if f.startswith(vid_id) and not f.endswith(".part"):
                         return os.path.join(Config.DOWNLOAD_PATH, f), True
                         
             except Exception as e:
-                # لو فشلت استراتيجية نكمل للي بعدها
                 continue
 
-        # === الحل الأخير: API Fallback ===
+        # API Fallback
         try:
             res = await self._api_download_fallback(link, vid_id, final_path, video or songvideo)
             if res: return res, True
@@ -308,7 +305,6 @@ class YouTubeAPI:
         return None, False
 
     async def _api_download_fallback(self, link, vid_id, path, is_video):
-        """تحميل الطوارئ من سيرفرات خارجية"""
         ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
         url = None
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ctx)) as s:
@@ -341,10 +337,9 @@ class YouTubeAPI:
     # -----------------------------------------------------------------
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid: link = self.base + link
-        # محاولة استخراج رابط مباشر
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--cookies", str(get_cookie()), # تحويل None لـ str لتفادي الخطأ
+            "--cookies", str(get_cookie()),
             "-g", "-f", "best[height<=?720][width<=?1280]",
             f"{link}",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
