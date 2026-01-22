@@ -4,14 +4,13 @@ primary_region = "cdg"
 [build]
   dockerfile = "Dockerfile"
 
-# 🔥 التغيير هنا: أمر التشغيل بقى run.py
 [processes]
   app = "python3 run.py"
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus = 2
-  memory_mb = 1024
-
+  cpu_kind = "performance" # يجب أن يكون performance لهذا العدد من الأنوية
+  cpus = 16
+  memory_mb = 51200        # 50 جيجا بايت
+  
 [[swap]]
   size_mb = 512
