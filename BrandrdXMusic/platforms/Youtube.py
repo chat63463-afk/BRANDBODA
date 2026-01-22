@@ -1,13 +1,13 @@
 """
-███╗   ███╗██╗██╗     ██╗      ██████╗ ███████╗███████╗██╗  ██╗██████╗ ███████╗
-████╗ ████║██║██║     ██║      ██╔══██╗██╔════╝██╔════╝██║  ██║██╔══██╗██╔════╝
-██╔████╔██║██║██║     ██║█████╗██████╔╝█████╗  █████╗  ███████║██████╔╝█████╗  
-██║╚██╔╝██║██║██║     ██║╚════╝██╔══██╗██╔══╝  ██╔══╝  ██╔══██║██╔══██╗██╔══╝  
-██║ ╚═╝ ██║██║███████╗███████╗ ██║  ██║███████╗███████╗██║  ██║██║  ██║███████╗
-╚═╝     ╚═╝╚═╝╚══════╝╚══════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+███████╗███████╗██████╗ ██╗  ██╗██╗███╗   ██╗███████╗████████╗███████╗██╗███╗   ██╗
+██╔════╝██╔════╝██╔══██╗██║  ██║██║████╗  ██║██╔════╝╚══██╔══╝██╔════╝██║████╗  ██║
+███████╗█████╗  ██████╔╝███████║██║██╔██╗ ██║███████╗   ██║   █████╗  ██║██╔██╗ ██║
+╚════██║██╔══╝  ██╔══██╗██╔══██║██║██║╚██╗██║╚════██║   ██║   ██╔══╝  ██║██║╚██╗██║
+███████║███████╗██║  ██║██║  ██║██║██║ ╚████║███████║   ██║   ███████╗██║██║ ╚████║
+╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚══════╝╚═╝╚═╝  ╚═══╝
 
-[النظام: MILLISECOND BOOT AI]
-[الميزات: Lazy Loading + 1GB RAM Cache + Self-Healing + 16-Core Optimization]
+[النظام: GOD MODE - TV BYPASS]
+[الميزات: Sign-In Killer + TV Client Impersonation + 1GB RAM Cache + Lazy Loading]
 """
 
 import asyncio
@@ -16,14 +16,13 @@ import re
 import logging
 import time
 import random
-# (ملاحظة: لا نستدعي المكتبات الثقيلة هنا لتسريع الإقلاع)
 
 # === إعدادات اللوج ===
 def LOGGER(name): return logging.getLogger(name)
-LOG = LOGGER("YouTube_Core")
+LOG = LOGGER("YouTube_GodMode")
 logging.basicConfig(level=logging.ERROR)
 
-# === دوال المساعدة (Mock Utils) ===
+# === دوال المساعدة ===
 try:
     from BrandrdXMusic.utils.formatters import time_to_seconds
 except ImportError:
@@ -42,27 +41,33 @@ if not os.path.exists(Config.DOWNLOAD_PATH):
     os.makedirs(Config.DOWNLOAD_PATH)
 
 # =======================================================================
-# 🧠 CyberBrain: العقل المدبر (يعمل عند الحاجة فقط)
+# 🧠 CyberBrain: العقل المدبر (يعالج خطأ تسجيل الدخول)
 # =======================================================================
 class CyberBrain:
     def __init__(self):
-        # الترتيب: سرعة قصوى (Aria) -> تخفي (Android) -> توافق (iOS)
-        self.strategies = ["TURBO_ARIA", "STEALTH_ANDROID", "LEGACY_IOS"]
+        # الترتيب:
+        # 1. PREMIUM_ARIA: سرعة قصوى + كوكيز + أندرويد
+        # 2. TV_NO_COOKIES: الحل السحري لتجاوز "Sign in" (بدون كوكيز + تلفزيون)
+        # 3. WEB_FALLBACK: محاولة يائسة كمتصفح عادي
+        self.strategies = ["PREMIUM_ARIA", "TV_NO_COOKIES", "WEB_FALLBACK"]
         
     def analyze(self, error_msg: str) -> str:
         e = str(error_msg).lower()
+        # اكتشاف خطأ تسجيل الدخول اللعين
+        if any(x in e for x in ["sign in", "confirm", "bot", "auth", "cookies"]):
+            return "AUTH_BLOCK"
         if any(x in e for x in ["403", "forbidden", "refused", "errorcode=22"]):
-            return "NETWORK_BAN"
-        if any(x in e for x in ["sign in", "cookies", "private"]):
-            return "AUTH_ERROR"
-        if any(x in e for x in ["fragment", "empty", "0 byte", "directory"]):
+            return "IP_BLOCK"
+        if any(x in e for x in ["fragment", "empty", "0 byte"]):
             return "DATA_CORRUPTION"
         return "UNKNOWN"
 
     def next_strategy(self, current, diagnosis):
-        # لو المشكلة شبكة (403) مع Aria، الحل هو الهروب لـ Native Android
-        if diagnosis == "NETWORK_BAN" and current == "TURBO_ARIA":
-            return "STEALTH_ANDROID"
+        # لو المشكلة "Sign in" (AUTH_BLOCK)، الحل الوحيد هو وضع التلفزيون بدون كوكيز
+        if diagnosis == "AUTH_BLOCK" and current == "PREMIUM_ARIA":
+            return "TV_NO_COOKIES"
+        
+        # التنقل الطبيعي
         try:
             idx = self.strategies.index(current)
             if idx + 1 < len(self.strategies): return self.strategies[idx + 1]
@@ -70,16 +75,16 @@ class CyberBrain:
         return None
 
 # =======================================================================
-# 🚀 الكلاس الرئيسي (مصمم للإقلاع الفوري)
+# 🚀 الكلاس الرئيسي
 # =======================================================================
 class YouTubeAPI:
     def __init__(self):
         # لا نقوم بأي عمليات ثقيلة هنا لضمان الإقلاع في Milliseconds
         self.base = "https://www.youtube.com/watch?v="
-        self.brain = None # سيتم تحميله لاحقاً
-        self.pool = None  # سيتم تحميله لاحقاً
-        self._aria_checked = False
+        self.brain = None
+        self.pool = None
         self._has_aria = False
+        self._aria_checked = False
 
     async def _lazy_init(self):
         """تحميل الأدوات الثقيلة فقط عند أول استخدام"""
@@ -93,11 +98,9 @@ class YouTubeAPI:
             self._aria_checked = True
 
     def _cleanup(self, path=None):
-        """تنظيف ذكي للملفات"""
         try:
             if path and os.path.exists(path) and os.path.getsize(path) == 0:
                 os.remove(path)
-            # تنظيف المخلفات العامة
             for f in os.listdir(Config.DOWNLOAD_PATH):
                 p = os.path.join(Config.DOWNLOAD_PATH, f)
                 if f.endswith((".part", ".aria2", ".ytdl")):
@@ -111,12 +114,10 @@ class YouTubeAPI:
         return None
 
     # -----------------------------------------------------------------
-    # 📥 محرك التحميل الذكي
+    # 📥 محرك التحميل
     # -----------------------------------------------------------------
     async def download(self, link: str, mystic, video=None, videoid=None, songaudio=None, songvideo=None, **kwargs) -> str:
-        await self._lazy_init() # تفعيل المحرك الآن
-        
-        # استدعاء yt_dlp هنا فقط (Lazy Import) لتسريع تشغيل البوت
+        await self._lazy_init()
         from yt_dlp import YoutubeDL
 
         if videoid: link = self.base + link
@@ -129,14 +130,13 @@ class YouTubeAPI:
         ext = "mp4" if (video or songvideo) else "m4a"
         final_path = os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.{ext}")
 
-        # فحص سريع
         if os.path.exists(final_path) and os.path.getsize(final_path) > 1024:
             return final_path, True
 
-        current_strategy = "TURBO_ARIA"
+        current_strategy = "PREMIUM_ARIA"
         
         while current_strategy:
-            LOG.info(f"⚡ Strategy: {current_strategy}")
+            LOG.info(f"🛡️ Executing Strategy: {current_strategy}")
             opts = self._get_opts(current_strategy, vid_id, video or songvideo)
             
             try:
@@ -152,7 +152,7 @@ class YouTubeAPI:
 
             except Exception as e:
                 diagnosis = self.brain.analyze(str(e))
-                LOG.error(f"⚠️ Error: {diagnosis}")
+                LOG.error(f"❌ Failed ({diagnosis}). Switching tactics...")
                 self._cleanup(final_path)
                 current_strategy = self.brain.next_strategy(current_strategy, diagnosis)
 
@@ -162,35 +162,46 @@ class YouTubeAPI:
         except: return None, False
 
     def _get_opts(self, strategy, vid_id, is_video):
+        # إعدادات أساسية
         opts = {
-            "cookiefile": self.get_cookie(),
             "outtmpl": os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.%(ext)s"),
             "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "source_address": "0.0.0.0"
         }
         
-        # 🔥 إعدادات Aria2 للسيرفرات العملاقة (49GB RAM)
-        aria_args = [
-            "-c", "-x", "8", "-s", "8", "-k", "5M",
-            "--disk-cache=1024M", # كاش 1 جيجا في الرام!
-            "--file-allocation=none", # إقلاع فوري للتحميل
-            "--header=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"
-        ]
-        
-        if strategy == "TURBO_ARIA" and self._has_aria:
-            opts["external_downloader"] = "aria2c"
-            opts["external_downloader_args"] = aria_args
+        # === Strategy 1: الوضع الطبيعي السريع (Premium Aria) ===
+        if strategy == "PREMIUM_ARIA":
+            opts["cookiefile"] = self.get_cookie() # استخدام الكوكيز
+            if self._has_aria:
+                opts["external_downloader"] = "aria2c"
+                opts["external_downloader_args"] = [
+                    "-c", "-x", "8", "-s", "8", "-k", "5M", "--disk-cache=1024M",
+                    "--header=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"
+                ]
             opts["extractor_args"] = {"youtube": {"player_client": ["android", "web"]}}
-        
-        elif strategy == "STEALTH_ANDROID":
-            opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
-            
-        elif strategy == "LEGACY_IOS":
-            opts["extractor_args"] = {"youtube": {"player_client": ["ios"]}}
+
+        # === Strategy 2: وضع التلفزيون (الحل السحري لـ Sign In) ===
+        elif strategy == "TV_NO_COOKIES":
+            # ⛔ حذف الكوكيز نهائياً لتجنب الحظر المرتبط بالحساب
+            opts["cookiefile"] = None 
+            # ✅ استخدام عميل التلفزيون المدمج (لا يطلب كابتشا أبداً)
+            opts["extractor_args"] = {
+                "youtube": {
+                    "player_client": ["tv_embedded", "web_embedded"],
+                    "player_skip": ["configs", "webpage"]
+                }
+            }
+            # نستخدم التحميل العادي هنا لضمان التوافق مع بروتوكول التلفزيون
+            opts["external_downloader"] = None
+
+        # === Strategy 3: وضع المتصفح الآمن ===
+        elif strategy == "WEB_FALLBACK":
+            opts["cookiefile"] = self.get_cookie()
+            opts["extractor_args"] = {"youtube": {"player_client": ["web"]}}
 
         opts["format"] = "best[ext=mp4]/best" if is_video else "bestaudio[ext=m4a]/bestaudio"
         return opts
 
-    # === دوال API والبحث ===
+    # === API & Utils ===
     async def _api_fallback(self, link, vid_id, path, is_video):
         import aiohttp, ssl # Lazy Import
         ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
@@ -215,7 +226,7 @@ class YouTubeAPI:
                         return path
         return None
 
-    # دوال الواجهة (مثل Title, Duration)
+    # Track / Title / Duration
     async def track(self, link: str, videoid=None):
         from youtubesearchpython.__future__ import VideosSearch # Lazy Import
         if videoid: link = self.base + link
@@ -230,7 +241,6 @@ class YouTubeAPI:
         if i == "error": return None
         return d["title"], d["duration_min"], time_to_seconds(d["duration_min"]), d["thumb"], i
     
-    # واجهات سريعة للبوت
     async def title(self, l, v=None): return (await self.details(l, v))[0]
     async def duration(self, l, v=None): return (await self.details(l, v))[1]
     async def thumbnail(self, l, v=None): return (await self.details(l, v))[3]
