@@ -1,17 +1,23 @@
-app = "brandboda-29oifg"
-primary_region = "cdg"
+# fly.toml app configuration file generated for brandboda-t86xtw on 2026-01-22T16:26:27Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'brandboda-t86xtw'
+primary_region = 'iad'
 
 [build]
-  dockerfile = "Dockerfile"
 
-# 🔥 التغيير هنا: أمر التشغيل بقى run.py
-[processes]
-  app = "python3 run.py"
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus = 2
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
   memory_mb = 1024
-
-[[swap]]
-  size_mb = 512
