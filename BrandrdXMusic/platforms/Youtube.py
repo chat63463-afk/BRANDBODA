@@ -1,54 +1,38 @@
 """
-███████╗███████╗██████╗ ██╗  ██╗██╗███╗   ██╗███████╗████████╗███████╗██╗███╗   ██╗
-██╔════╝██╔════╝██╔══██╗██║  ██║██║████╗  ██║██╔════╝╚══██╔══╝██╔════╝██║████╗  ██║
-███████╗█████╗  ██████╔╝███████║██║██╔██╗ ██║███████╗   ██║   █████╗  ██║██╔██╗ ██║
-╚════██║██╔══╝  ██╔══██╗██╔══██║██║██║╚██╗██║╚════██║   ██║   ██╔══╝  ██║██║╚██╗██║
-███████║███████╗██║  ██║██║  ██║██║██║ ╚████║███████║   ██║   ███████╗██║██║ ╚████║
-╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚══════╝╚═╝╚═╝  ╚═══╝
+███╗   ███╗██╗██╗     ██╗      ██████╗ ███████╗███████╗██╗  ██╗██████╗ ███████╗
+████╗ ████║██║██║     ██║      ██╔══██╗██╔════╝██╔════╝██║  ██║██╔══██╗██╔════╝
+██╔████╔██║██║██║     ██║█████╗██████╔╝█████╗  █████╗  ███████║██████╔╝█████╗  
+██║╚██╔╝██║██║██║     ██║╚════╝██╔══██╗██╔══╝  ██╔══╝  ██╔══██║██╔══██╗██╔══╝  
+██║ ╚═╝ ██║██║███████╗███████╗ ██║  ██║███████╗███████╗██║  ██║██║  ██║███████╗
+╚═╝     ╚═╝╚═╝╚══════╝╚══════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
 
-[النظام: المدمرة الذكية - Smart Stealth Mode]
-[الميزات: 4-Connection Limit (Anti-403) + Header Injection + Auto-Failover]
+[النظام: MILLISECOND BOOT AI]
+[الميزات: Lazy Loading + 1GB RAM Cache + Self-Healing + 16-Core Optimization]
 """
 
 import asyncio
 import os
 import re
-import json
+import logging
 import time
 import random
-import logging
-import ssl
-import aiohttp
-import shutil
-from typing import Union, List, Dict, Tuple, Optional
-from concurrent.futures import ThreadPoolExecutor
+# (ملاحظة: لا نستدعي المكتبات الثقيلة هنا لتسريع الإقلاع)
 
-import yt_dlp
-from pyrogram.enums import MessageEntityType
-from pyrogram.types import Message
-from youtubesearchpython.__future__ import VideosSearch, Playlist
-from yt_dlp import YoutubeDL
+# === إعدادات اللوج ===
+def LOGGER(name): return logging.getLogger(name)
+LOG = LOGGER("YouTube_Core")
+logging.basicConfig(level=logging.ERROR)
 
-# =======================================================================
-# ⚙️ 1. إعدادات السيرفر واللوج
-# =======================================================================
+# === دوال المساعدة (Mock Utils) ===
 try:
-    from BrandrdXMusic.utils.database import is_on_off
     from BrandrdXMusic.utils.formatters import time_to_seconds
-    from BrandrdXMusic import LOGGER
 except ImportError:
-    logging.basicConfig(level=logging.ERROR)
-    def LOGGER(name): return logging.getLogger(name)
-    async def is_on_off(x): return True
     def time_to_seconds(t): return 0
-
-logging.getLogger("yt_dlp").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-LOG = LOGGER("YouTube_Destroyer")
 
 class Config:
     DOWNLOAD_PATH = "downloads"
-    MAX_WORKERS = 50 
+    # استغلال الـ 16 نواة بالكامل
+    MAX_WORKERS = 200 
     SERVERS = [
         {"url": "https://shrutibots.site", "weight": 10},
         {"url": "https://myapi-i-bwca.fly.dev", "weight": 100},
@@ -58,238 +42,157 @@ if not os.path.exists(Config.DOWNLOAD_PATH):
     os.makedirs(Config.DOWNLOAD_PATH)
 
 # =======================================================================
-# 🧠 2. نظام الكاش
+# 🧠 CyberBrain: العقل المدبر (يعمل عند الحاجة فقط)
 # =======================================================================
-_cache: Dict[str, Tuple[float, List[Dict]]] = {}
-_cache_lock = asyncio.Lock()
-YOUTUBE_META_TTL = 3600
+class CyberBrain:
+    def __init__(self):
+        # الترتيب: سرعة قصوى (Aria) -> تخفي (Android) -> توافق (iOS)
+        self.strategies = ["TURBO_ARIA", "STEALTH_ANDROID", "LEGACY_IOS"]
+        
+    def analyze(self, error_msg: str) -> str:
+        e = str(error_msg).lower()
+        if any(x in e for x in ["403", "forbidden", "refused", "errorcode=22"]):
+            return "NETWORK_BAN"
+        if any(x in e for x in ["sign in", "cookies", "private"]):
+            return "AUTH_ERROR"
+        if any(x in e for x in ["fragment", "empty", "0 byte", "directory"]):
+            return "DATA_CORRUPTION"
+        return "UNKNOWN"
 
-# =======================================================================
-# 🛠️ 3. أدوات ذكية (الكوكيز والمسارات)
-# =======================================================================
-
-def get_cookie():
-    custom_path = "BRANDBODA/cookies/BrandedXMusic.txt"
-    if os.path.exists(custom_path):
-        return custom_path
-    if os.path.exists("cookies.txt"):
-        return "cookies.txt"
-    if os.path.exists("cookies"):
-        files = [f for f in os.listdir("cookies") if f.endswith(".txt")]
-        if files: return os.path.join("cookies", random.choice(files))
-    return None
-
-def clean_file(path):
-    try:
-        if os.path.exists(path): os.remove(path)
-        for ext in [".aria2", ".part", ".ytdl", ".meta"]:
-            if os.path.exists(path + ext): os.remove(path + ext)
-    except: pass
-
-async def shell_cmd(cmd):
-    proc = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-    )
-    out, errorz = await proc.communicate()
-    if errorz:
-        if "unavailable videos are hidden" in (errorz.decode("utf-8")).lower():
-            return out.decode("utf-8")
-        else:
-            return errorz.decode("utf-8")
-    return out.decode("utf-8")
+    def next_strategy(self, current, diagnosis):
+        # لو المشكلة شبكة (403) مع Aria، الحل هو الهروب لـ Native Android
+        if diagnosis == "NETWORK_BAN" and current == "TURBO_ARIA":
+            return "STEALTH_ANDROID"
+        try:
+            idx = self.strategies.index(current)
+            if idx + 1 < len(self.strategies): return self.strategies[idx + 1]
+        except: pass
+        return None
 
 # =======================================================================
-# 🚀 4. الكلاس الرئيسي
+# 🚀 الكلاس الرئيسي (مصمم للإقلاع الفوري)
 # =======================================================================
 class YouTubeAPI:
     def __init__(self):
+        # لا نقوم بأي عمليات ثقيلة هنا لضمان الإقلاع في Milliseconds
         self.base = "https://www.youtube.com/watch?v="
-        self.regex = r"(?:youtube\.com|youtu\.be)"
-        self.pool = ThreadPoolExecutor(max_workers=Config.MAX_WORKERS)
-        self.has_aria2 = os.system("which aria2c > /dev/null 2>&1") == 0
+        self.brain = None # سيتم تحميله لاحقاً
+        self.pool = None  # سيتم تحميله لاحقاً
+        self._aria_checked = False
+        self._has_aria = False
 
+    async def _lazy_init(self):
+        """تحميل الأدوات الثقيلة فقط عند أول استخدام"""
+        if not self.pool:
+            from concurrent.futures import ThreadPoolExecutor
+            self.pool = ThreadPoolExecutor(max_workers=Config.MAX_WORKERS)
+        if not self.brain:
+            self.brain = CyberBrain()
+        if not self._aria_checked:
+            self._has_aria = os.system("which aria2c > /dev/null 2>&1") == 0
+            self._aria_checked = True
+
+    def _cleanup(self, path=None):
+        """تنظيف ذكي للملفات"""
         try:
+            if path and os.path.exists(path) and os.path.getsize(path) == 0:
+                os.remove(path)
+            # تنظيف المخلفات العامة
             for f in os.listdir(Config.DOWNLOAD_PATH):
-                if f.endswith(".part"): os.remove(os.path.join(Config.DOWNLOAD_PATH, f))
+                p = os.path.join(Config.DOWNLOAD_PATH, f)
+                if f.endswith((".part", ".aria2", ".ytdl")):
+                    os.remove(p)
         except: pass
 
-    # -----------------------------------------------------------------
-    # 🔗 معالجة الروابط
-    # -----------------------------------------------------------------
-    async def exists(self, link: str, videoid: Union[bool, str] = None):
-        if videoid: link = self.base + link
-        return bool(re.search(self.regex, link))
-
-    async def url(self, message_1: Message) -> Union[str, None]:
-        messages = [message_1]
-        if message_1.reply_to_message:
-            messages.append(message_1.reply_to_message)
-        text = ""
-        offset = None
-        length = None
-        for message in messages:
-            if offset: break
-            if message.entities:
-                for entity in message.entities:
-                    if entity.type == MessageEntityType.URL:
-                        text = message.text or message.caption
-                        offset, length = entity.offset, entity.length
-                        break
-            elif message.caption_entities:
-                for entity in message.caption_entities:
-                    if entity.type == MessageEntityType.TEXT_LINK:
-                        return entity.url
-        return None if offset in (None,) else text[offset : offset + length]
+    def get_cookie(self):
+        paths = ["BRANDBODA/cookies/BrandedXMusic.txt", "cookies.txt", "cookies/cookies.txt"]
+        for p in paths:
+            if os.path.exists(p): return p
+        return None
 
     # -----------------------------------------------------------------
-    # 🔍 البحث
+    # 📥 محرك التحميل الذكي
     # -----------------------------------------------------------------
-    async def track(self, link: str, videoid: Union[bool, str] = None):
-        if videoid: link = self.base + link
-        link = link.split("&")[0]
+    async def download(self, link: str, mystic, video=None, videoid=None, songaudio=None, songvideo=None, **kwargs) -> str:
+        await self._lazy_init() # تفعيل المحرك الآن
+        
+        # استدعاء yt_dlp هنا فقط (Lazy Import) لتسريع تشغيل البوت
+        from yt_dlp import YoutubeDL
 
-        async with _cache_lock:
-            if link in _cache:
-                ts, val = _cache[link]
-                if time.time() - ts < YOUTUBE_META_TTL:
-                    return val[0], val[1]
-
-        try:
-            results = VideosSearch(link, limit=1)
-            data = (await results.next())["result"][0]
-            track_details = {
-                "title": data["title"],
-                "link": data["link"],
-                "vidid": data["id"],
-                "duration_min": data["duration"],
-                "thumb": data["thumbnails"][0]["url"].split("?")[0],
-                "cookiefile": get_cookie(),
-            }
-            async with _cache_lock:
-                _cache[link] = (time.time(), (track_details, data["id"]))
-            return track_details, data["id"]
-        except Exception:
-            return {"title": "Error", "link": link, "vidid": "error", "duration_min": "0:00", "thumb": ""}, "error"
-
-    async def details(self, link: str, videoid: Union[bool, str] = None):
-        d, i = await self.track(link, videoid)
-        if i == "error": return None
-        return d["title"], d["duration_min"], time_to_seconds(d["duration_min"]), d["thumb"], i
-
-    async def title(self, link: str, videoid: Union[bool, str] = None):
-        d, _ = await self.track(link, videoid)
-        return d.get("title")
-
-    async def duration(self, link: str, videoid: Union[bool, str] = None):
-        d, _ = await self.track(link, videoid)
-        return d.get("duration_min")
-
-    async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
-        d, _ = await self.track(link, videoid)
-        return d.get("thumb")
-
-    # -----------------------------------------------------------------
-    # 📥 محرك التحميل (Aria2 Safe Mode + Native Fallback)
-    # -----------------------------------------------------------------
-    async def download(
-        self,
-        link: str,
-        mystic,
-        video: Union[bool, str] = None,
-        videoid: Union[bool, str] = None,
-        songaudio: Union[bool, str] = None,
-        songvideo: Union[bool, str] = None,
-        format_id: Union[bool, str] = None,
-        title: Union[bool, str] = None,
-    ) -> str:
         if videoid: link = self.base + link
         loop = asyncio.get_running_loop()
-
+        
+        vid_id = str(int(time.time()))
         if "v=" in link: vid_id = link.split("v=")[1].split("&")[0]
         elif "youtu.be/" in link: vid_id = link.split("youtu.be/")[1].split("?")[0]
-        else: vid_id = str(int(time.time()))
 
-        final_path_ext = "mp4" if (video or songvideo) else "m4a"
-        final_path = os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.{final_path_ext}")
+        ext = "mp4" if (video or songvideo) else "m4a"
+        final_path = os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.{ext}")
 
-        if os.path.exists(final_path):
+        # فحص سريع
+        if os.path.exists(final_path) and os.path.getsize(final_path) > 1024:
             return final_path, True
 
-        # 🔥 إعدادات Aria2 الآمنة (4 اتصالات فقط لتجنب الحظر)
-        aria2_args = [
-            "-c",
-            "-x", "4",  # تم تقليلها إجبارياً لتفادي خطأ 403
-            "-s", "4", 
-            "-j", "1", 
-            "-k", "1M", 
-            "--header=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "--check-certificate=false"
+        current_strategy = "TURBO_ARIA"
+        
+        while current_strategy:
+            LOG.info(f"⚡ Strategy: {current_strategy}")
+            opts = self._get_opts(current_strategy, vid_id, video or songvideo)
+            
+            try:
+                def execute():
+                    with YoutubeDL(opts) as ydl: ydl.download([link])
+                
+                await loop.run_in_executor(self.pool, execute)
+                
+                if os.path.exists(final_path) and os.path.getsize(final_path) > 1024:
+                    return final_path, True
+                else:
+                    raise Exception("Zero Byte File")
+
+            except Exception as e:
+                diagnosis = self.brain.analyze(str(e))
+                LOG.error(f"⚠️ Error: {diagnosis}")
+                self._cleanup(final_path)
+                current_strategy = self.brain.next_strategy(current_strategy, diagnosis)
+
+        # Fallback API
+        try:
+            return await self._api_fallback(link, vid_id, final_path, video or songvideo), True
+        except: return None, False
+
+    def _get_opts(self, strategy, vid_id, is_video):
+        opts = {
+            "cookiefile": self.get_cookie(),
+            "outtmpl": os.path.join(Config.DOWNLOAD_PATH, f"{vid_id}.%(ext)s"),
+            "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "source_address": "0.0.0.0"
+        }
+        
+        # 🔥 إعدادات Aria2 للسيرفرات العملاقة (49GB RAM)
+        aria_args = [
+            "-c", "-x", "8", "-s", "8", "-k", "5M",
+            "--disk-cache=1024M", # كاش 1 جيجا في الرام!
+            "--file-allocation=none", # إقلاع فوري للتحميل
+            "--header=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"
         ]
-
-        def get_opts(use_aria2=True):
-            cookie = get_cookie()
-            opts = {
-                "cookiefile": cookie,
-                "outtmpl": f"downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-                "source_address": "0.0.0.0",
-            }
+        
+        if strategy == "TURBO_ARIA" and self._has_aria:
+            opts["external_downloader"] = "aria2c"
+            opts["external_downloader_args"] = aria_args
+            opts["extractor_args"] = {"youtube": {"player_client": ["android", "web"]}}
+        
+        elif strategy == "STEALTH_ANDROID":
+            opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
             
-            # تفعيل Aria2 فقط إذا طلبناه
-            if self.has_aria2 and use_aria2:
-                opts["external_downloader"] = "aria2c"
-                opts["external_downloader_args"] = aria2_args
+        elif strategy == "LEGACY_IOS":
+            opts["extractor_args"] = {"youtube": {"player_client": ["ios"]}}
 
-            # Format Selection
-            if video or songvideo:
-                opts["format"] = "bestvideo+bestaudio/best"
-                opts["merge_output_format"] = "mp4"
-            else:
-                opts["format"] = "bestaudio[ext=m4a]/bestaudio/best"
-            
-            return opts
+        opts["format"] = "best[ext=mp4]/best" if is_video else "bestaudio[ext=m4a]/bestaudio"
+        return opts
 
-        # === المحاولة الأولى: Aria2 (Safe Mode) ===
-        try:
-            def run_dl_aria():
-                with YoutubeDL(get_opts(use_aria2=True)) as ydl:
-                    ydl.download([link])
-            await loop.run_in_executor(self.pool, run_dl_aria)
-            
-            # التحقق
-            for f in os.listdir(Config.DOWNLOAD_PATH):
-                if f.startswith(vid_id) and not f.endswith(".part") and not f.endswith(".aria2"):
-                    return os.path.join(Config.DOWNLOAD_PATH, f), True
-        except Exception as e:
-            LOG.error(f"Aria2 Failed: {e}, Switching to Native...")
-
-        # === المحاولة الثانية: Native yt-dlp (Fallback) ===
-        # إذا فشل Aria2 بسبب 403، نستخدم التحميل العادي فوراً
-        try:
-            def run_dl_native():
-                with YoutubeDL(get_opts(use_aria2=False)) as ydl:
-                    ydl.download([link])
-            await loop.run_in_executor(self.pool, run_dl_native)
-            
-            for f in os.listdir(Config.DOWNLOAD_PATH):
-                if f.startswith(vid_id) and not f.endswith(".part"):
-                    return os.path.join(Config.DOWNLOAD_PATH, f), True
-        except Exception:
-            pass
-
-        # === المحاولة الثالثة: API Fallback ===
-        try:
-            res = await self._api_download_fallback(link, vid_id, final_path, video or songvideo)
-            if res: return res, True
-        except:
-            pass
-
-        return None, False
-
-    async def _api_download_fallback(self, link, vid_id, path, is_video):
+    # === دوال API والبحث ===
+    async def _api_fallback(self, link, vid_id, path, is_video):
+        import aiohttp, ssl # Lazy Import
         ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
         url = None
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ctx)) as s:
@@ -298,87 +201,54 @@ class YouTubeAPI:
                     async with s.head(srv["url"], timeout=2) as r:
                         if r.status < 500: url = srv["url"]; break
                 except: continue
-        
         if not url: return None
         t = "video" if is_video else "audio"
-        
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ctx)) as s:
             async with s.get(f"{url}/download", params={"url": vid_id, "type": t}, timeout=10) as r:
                 if r.status != 200: return None
                 d = await r.json()
-                dl_url = d.get("url")
-                if not dl_url: return None
-                
-                async with s.get(dl_url, timeout=600) as stream:
+                if not d.get("url"): return None
+                async with s.get(d["url"], timeout=600) as stream:
                     if stream.status == 200:
                         with open(path, "wb") as f:
-                            async for chunk in stream.content.iter_chunked(65536):
-                                f.write(chunk)
+                            async for chunk in stream.content.iter_chunked(65536): f.write(chunk)
                         return path
         return None
 
-    # -----------------------------------------------------------------
-    # 📺 وظائف إضافية
-    # -----------------------------------------------------------------
-    async def video(self, link: str, videoid: Union[bool, str] = None):
-        if videoid: link = self.base + link
-        proc = await asyncio.create_subprocess_exec(
-            "yt-dlp",
-            "--cookies", str(get_cookie()),
-            "-g", "-f", "best[height<=?720][width<=?1280]",
-            f"{link}",
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate()
-        return (1, stdout.decode().split("\n")[0]) if stdout else (0, stderr.decode())
-
-    async def playlist(self, link, limit, user_id, videoid: Union[bool, str] = None):
-        if videoid: link = self.listbase + link
-        if "&" in link: link = link.split("&")[0]
-        cmd = (
-            f"yt-dlp -i --compat-options no-youtube-unavailable-videos "
-            f"--get-id --flat-playlist --playlist-end {limit} --skip-download '{link}' "
-            f"2>/dev/null"
-        )
-        playlist = await shell_cmd(cmd)
-        return [key for key in playlist.split("\n") if key]
-
-    async def formats(self, link: str, videoid: Union[bool, str] = None):
-        if videoid: link = self.base + link
-        if "&" in link: link = link.split("&")[0]
-        
-        opts = {"quiet": True, "cookiefile": get_cookie()}
-        ydl = YoutubeDL(opts)
-        
-        with ydl:
-            formats_available = []
-            try:
-                r = ydl.extract_info(link, download=False)
-                for format in r.get("formats", []):
-                    if not format.get("filesize"): continue
-                    formats_available.append({
-                        "format": format["format"],
-                        "filesize": format["filesize"],
-                        "format_id": format["format_id"],
-                        "ext": format["ext"],
-                        "format_note": format.get("format_note", ""),
-                        "yturl": link,
-                        "cookiefile": get_cookie(),
-                    })
-            except: pass
-        return formats_available, link
-
-    async def slider(self, link: str, query_type: int, videoid: Union[bool, str] = None):
+    # دوال الواجهة (مثل Title, Duration)
+    async def track(self, link: str, videoid=None):
+        from youtubesearchpython.__future__ import VideosSearch # Lazy Import
         if videoid: link = self.base + link
         try:
-            a = VideosSearch(link, limit=10)
-            result = (await a.next()).get("result")
-            r = result[query_type]
-            return r["title"], r["duration"], r["thumbnails"][0]["url"].split("?")[0], r["id"]
-        except:
-            return "Error", "0", "", "error"
+            results = VideosSearch(link.split("&")[0], limit=1)
+            data = (await results.next())["result"][0]
+            return {"title": data["title"], "duration_min": data["duration"], "thumb": data["thumbnails"][0]["url"].split("?")[0], "vidid": data["id"]}, data["id"]
+        except: return {"title": "Error", "duration_min": "0:00", "thumb": ""}, "error"
 
-# =======================================================================
-# 🏁 التصدير النهائي
+    async def details(self, link, videoid=None):
+        d, i = await self.track(link, videoid)
+        if i == "error": return None
+        return d["title"], d["duration_min"], time_to_seconds(d["duration_min"]), d["thumb"], i
+    
+    # واجهات سريعة للبوت
+    async def title(self, l, v=None): return (await self.details(l, v))[0]
+    async def duration(self, l, v=None): return (await self.details(l, v))[1]
+    async def thumbnail(self, l, v=None): return (await self.details(l, v))[3]
+    
+    async def url(self, message_1):
+        from pyrogram.enums import MessageEntityType
+        messages = [message_1]
+        if message_1.reply_to_message: messages.append(message_1.reply_to_message)
+        for message in messages:
+            if message.entities:
+                for entity in message.entities:
+                    if entity.type == MessageEntityType.URL:
+                        return (message.text or message.caption)[entity.offset : entity.offset + entity.length]
+        return None
+    
+    async def exists(self, link: str, videoid=None):
+        if videoid: link = self.base + link
+        return bool(re.search(r"(?:youtube\.com|youtu\.be)", link))
+
 # =======================================================================
 YouTube = YouTubeAPI()
